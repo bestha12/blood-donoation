@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Donor Registration | Blood Donation Portal</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <header class="navbar">
+    <div class="logo">Blood Donation Portal</div>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a class="active" href="register.html">Donor Registration</a></li>
+        <li><a href="search.html">Search Donors</a></li>
+        <li><a href="admin.html">Admin Login</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- ===== REGISTRATION SECTION ===== -->
+  <section class="registration-section">
+    <div class="icon">❤️</div>
+    <h1>Donor Registration</h1>
+    <p class="intro">Join our community of life-savers by registering as a blood donor.</p>
+
+    <div class="form-container">
+      <h2>Registration Form</h2>
+      <p class="form-subtext">Please fill out all the required information below.</p>
+
+      <form id="donorForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="fullName" name="fullName" placeholder="Enter your full name" required>
+          </div>
+          <div class="form-group">
+            <label>Age *</label>
+            <input type="number" id="age" name="age" placeholder="Enter your age" min="18" max="65" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Gender *</label>
+            <select id="gender" name="gender" required>
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Blood Group *</label>
+            <select id="bloodGroup" name="bloodGroup" required>
+              <option value="">Select blood group</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>City *</label>
+            <input type="text" id="city" name="city" placeholder="Enter your city" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Contact Number *</label>
+            <input type="tel" id="contactNumber" name="contactNumber" placeholder="Enter your phone number" pattern="[0-9]{10}" required>
+          </div>
+          <div class="form-group">
+            <label>Email Address *</label>
+            <input type="email" id="email" name="email" placeholder="Enter your email" required>
+          </div>
+        </div>
+
+        <button type="submit" class="submit-btn">Register as Donor</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <p>© 2025 Blood Donation Portal | Designed for VTU Mini Project</p>
+  </footer>
+
+  <!-- Supabase Config Script -->
+  <script src="supabase-config.js"></script>
+  
+  <!-- Registration Form Handler -->
+  <script>
+    document.getElementById('donorForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // Get form data
+      const formData = {
+        fullName: document.getElementById('fullName').value.trim(),
+        age: document.getElementById('age').value,
+        gender: document.getElementById('gender').value,
+        bloodGroup: document.getElementById('bloodGroup').value,
+        city: document.getElementById('city').value.trim(),
+        contactNumber: document.getElementById('contactNumber').value.trim(),
+        email: document.getElementById('email').value.trim()
+      };
+
+      // Validate age
+      if (formData.age < 18 || formData.age > 65) {
+        showNotification('Age must be between 18 and 65 years', 'error');
+        return;
+      }
+
+      // Disable submit button during processing
+      const submitBtn = e.target.querySelector('.submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Registering...';
+
+      try {
+        // Register donor
+        const result = await registerDonor(formData);
+
+        if (result.success) {
+          showNotification(result.message, 'success');
+          // Reset form
+          document.getElementById('donorForm').reset();
+          // Redirect to home after 2 seconds
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 2000);
+        } else {
+          showNotification(result.message, 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showNotification('An error occurred during registration', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Register as Donor';
+      }
+    });
+  </script>
+
+</body>
+</html>

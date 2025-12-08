@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Donors | Blood Donation Portal</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <header class="navbar">
+    <div class="logo">Blood Donation Portal</div>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="register.html">Register Donor</a></li>
+        <li><a class="active" href="search.html">Search Donors</a></li>
+        <li><a href="admin.html">Admin Login</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- ===== SEARCH SECTION ===== -->
+  <section class="search-section">
+    <h1>🔍 Search Blood Donors</h1>
+    <p class="intro">Find available donors by city and blood group</p>
+
+    <div class="form-container">
+      <form id="searchForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label>City</label>
+            <input type="text" id="searchCity" placeholder="Enter City (optional)">
+          </div>
+          <div class="form-group">
+            <label>Blood Group</label>
+            <select id="searchBloodGroup">
+              <option value="">All Blood Groups</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="search-btn">Search</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===== RESULTS TABLE ===== -->
+  <section class="results-section" id="resultsSection">
+    <h2>Available Donors</h2>
+    <div id="donorCount" style="margin-bottom: 20px; font-size: 16px; color: #666;"></div>
+    <div id="loadingMessage" style="text-align: center; padding: 40px; color: #666; font-size: 18px;">
+      Loading donors...
+    </div>
+    <table class="donor-table" id="donorTable" style="display: none;">
+      <thead>
+        <tr>
+          <th>Donor ID</th>
+          <th>Name</th>
+          <th>Age</th>
+          <th>Gender</th>
+          <th>Blood Group</th>
+          <th>City</th>
+          <th>Contact</th>
+          <th>Email</th>
+        </tr>
+      </thead>
+      <tbody id="donorTableBody">
+        <!-- Donor rows will be inserted here -->
+      </tbody>
+    </table>
+    <div id="noResults" style="display: none; text-align: center; padding: 40px; color: #999;">
+      <p style="font-size: 18px;">😔 No donors found matching your criteria</p>
+      <p>Try searching with different filters or check back later</p>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer>
+    <p>© 2025 Blood Donation Portal | Designed for VTU Mini Project</p>
+  </footer>
+
+  <!-- Supabase Config Script -->
+  <script src="supabase-config.js"></script>
+  
+  <!-- Search Form Handler -->
+  <script>
+    console.log('Search page loaded');
+
+    // Load all donors on page load
+    window.addEventListener('load', async function() {
+      console.log('Page load event triggered');
+      await performSearch();
+    });
+
+    // Handle search form submission
+    document.getElementById('searchForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      console.log('Search form submitted');
+      await performSearch();
+    });
+
+    async function performSearch() {
+      const city = document.getElementById('searchCity').value.trim();
+      const bloodGroup = document.getElementById('searchBloodGroup').value;
+      
+      console.log('Performing search with:', { city, bloodGroup });
+      
+      // Show loading state
+      const searchBtn = document.querySelector('.search-btn');
+      const originalText = searchBtn.textContent;
+      const loadingMessage = document.getElementById('loadingMessage');
+      const donorTable = document.getElementById('donorTable');
+      const noResults = document.getElementById('noResults');
+      
+      searchBtn.disabled = true;
+      searchBtn.textContent = 'Searching...';
+      loadingMessage.style.display = 'block';
+      donorTable.style.display = 'none';
+      noResults.style.display = 'none';
+
+      try {
+        console.log('Calling searchDonors()...');
+        // Search donors
+        const result = await searchDonors(city, bloodGroup);
+        console.log('Search result:', result);
+
+        if (result.success) {
+          displayDonors(result.donors);
+        } else {
+          console.error('Search failed:', result.message);
+          showNotification(result.message, 'error');
+          loadingMessage.style.display = 'none';
+          noResults.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        showNotification('An error occurred during search', 'error');
+        loadingMessage.style.display = 'none';
+        noResults.style.display = 'block';
+      } finally {
+        searchBtn.disabled = false;
+        searchBtn.textContent = originalText;
+      }
+    }
+
+    function displayDonors(donors) {
+      console.log('Displaying donors:', donors.length);
+      
+      const resultsSection = document.getElementById('resultsSection');
+      const tableBody = document.getElementById('donorTableBody');
+      const donorCount = document.getElementById('donorCount');
+      const noResults = document.getElementById('noResults');
+      const loadingMessage = document.getElementById('loadingMessage');
+      const donorTable = document.getElementById('donorTable');
+      
+      // Clear previous results
+      tableBody.innerHTML = '';
+      loadingMessage.style.display = 'none';
+      
+      if (donors.length === 0) {
+        console.log('No donors found');
+        resultsSection.style.display = 'block';
+        noResults.style.display = 'block';
+        donorTable.style.display = 'none';
+        donorCount.textContent = '';
+        return;
+      }
+
+      // Show results
+      console.log('Showing', donors.length, 'donors in table');
+      resultsSection.style.display = 'block';
+      noResults.style.display = 'none';
+      donorTable.style.display = 'table';
+      donorCount.textContent = `Found ${donors.length} donor${donors.length !== 1 ? 's' : ''}`;
+
+      // Populate table
+      donors.forEach(donor => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${donor.id}</td>
+          <td>${donor.full_name}</td>
+          <td>${donor.age}</td>
+          <td>${donor.gender}</td>
+          <td><strong style="color: #dc3545;">${donor.blood_group}</strong></td>
+          <td>${donor.city}</td>
+          <td>${donor.contact_number}</td>
+          <td>${donor.email}</td>
+        `;
+        tableBody.appendChild(row);
+      });
+      
+      console.log('Table populated successfully');
+    }
+  </script>
+
+</body>
+</html>

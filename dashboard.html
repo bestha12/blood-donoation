@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Blood Donation Portal</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .dashboard-header {
+            background: var(--card-bg);
+            padding: 20px 60px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .dashboard-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        .welcome-text {
+            font-size: 14px;
+            color: #666;
+            margin-top: 4px;
+        }
+        .logout-btn {
+            padding: 10px 20px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .logout-btn:hover {
+            background: var(--accent-dark);
+        }
+        .stats-section {
+            padding: 40px 60px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .stat-card {
+            flex: 1;
+            min-width: 200px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--accent);
+        }
+        .stat-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .table-section {
+            padding: 20px 60px 60px;
+        }
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .refresh-btn {
+            padding: 10px 20px;
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .refresh-btn:hover {
+            background: #217dbb;
+        }
+        .action-btns {
+            display: flex;
+            gap: 10px;
+        }
+        .delete-btn {
+            padding: 6px 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .delete-btn:hover {
+            background: #c82333;
+        }
+        .loading-message {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 18px;
+        }
+        @media (max-width: 720px) {
+            .dashboard-header, .stats-section, .table-section {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+            .donor-table {
+                font-size: 12px;
+            }
+            .donor-table th, .donor-table td {
+                padding: 8px 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">Blood Donation Portal</div>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="register.html">Donor Registration</a></li>
+                <li><a href="search.html">Search Donors</a></li>
+                <li><a href="#" class="active">Dashboard</a></li>
+            </ul>
+        </nav>
+    </nav>
+
+    <div class="dashboard-header">
+        <div>
+            <div class="dashboard-title">Admin Dashboard</div>
+            <div class="welcome-text" id="welcomeText">Welcome back!</div>
+        </div>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+    </div>
+
+    <section class="stats-section">
+        <div class="stat-card">
+            <div class="stat-number" id="totalDonors">0</div>
+            <div class="stat-label">Total Donors</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="todayDonors">0</div>
+            <div class="stat-label">Registered Today</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number" id="uniqueCities">0</div>
+            <div class="stat-label">Cities Covered</div>
+        </div>
+    </section>
+
+    <section class="table-section">
+        <div class="table-header">
+            <h2>All Donors</h2>
+            <button class="refresh-btn" id="refreshBtn">🔄 Refresh</button>
+        </div>
+        
+        <div id="loadingMessage" class="loading-message">Loading donors...</div>
+        
+        <table class="donor-table" id="donorTable" style="display: none;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Blood Group</th>
+                    <th>City</th>
+                    <th>Contact</th>
+                    <th>Email</th>
+                    <th>Registered</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="donorTableBody">
+                <!-- Donor rows will be inserted here -->
+            </tbody>
+        </table>
+    </section>
+
+    <footer>
+        <p>© 2025 Blood Donation Portal | Designed for VTU Mini Project</p>
+    </footer>
+
+    <!-- Supabase Config Script -->
+    <script src="supabase-config.js"></script>
+
+    <script>
+        // Check if admin is logged in immediately
+        console.log('Checking admin login status...');
+        if (!isAdminLoggedIn()) {
+            console.log('Not logged in, redirecting to admin.html');
+            alert('Please login first');
+            window.location.href = 'admin.html';
+        } else {
+            console.log('Admin is logged in');
+            // Show welcome message
+            const username = getAdminUsername();
+            if (username) {
+                document.getElementById('welcomeText').textContent = `Welcome back, ${username}!`;
+            }
+        }
+
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to logout?')) {
+                adminLogout();
+            }
+        });
+
+        // Refresh button
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            loadDonors();
+        });
+
+        // Load donors on page load
+        window.addEventListener('load', function() {
+            console.log('Page loaded, loading donors...');
+            loadDonors();
+        });
+
+        async function loadDonors() {
+            console.log('loadDonors() called');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const donorTable = document.getElementById('donorTable');
+            
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = '⏳ Loading...';
+            loadingMessage.style.display = 'block';
+            donorTable.style.display = 'none';
+
+            try {
+                console.log('Calling getAllDonors()...');
+                const result = await getAllDonors();
+                console.log('getAllDonors() result:', result);
+
+                if (result.success) {
+                    displayDonors(result.donors);
+                    updateStats(result.donors);
+                    loadingMessage.style.display = 'none';
+                    donorTable.style.display = 'table';
+                } else {
+                    console.error('Failed to load donors:', result.message);
+                    showNotification(result.message || 'Failed to load donors', 'error');
+                    loadingMessage.textContent = 'Failed to load donors. Please try again.';
+                }
+            } catch (error) {
+                console.error('Load error:', error);
+                showNotification('An error occurred while loading donors', 'error');
+                loadingMessage.textContent = 'An error occurred. Please try again.';
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = '🔄 Refresh';
+            }
+        }
+
+        function displayDonors(donors) {
+            console.log('Displaying', donors.length, 'donors');
+            const tableBody = document.getElementById('donorTableBody');
+            tableBody.innerHTML = '';
+
+            if (donors.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: #999;">No donors registered yet</td></tr>';
+                return;
+            }
+
+            donors.forEach(donor => {
+                const row = document.createElement('tr');
+                const registeredDate = new Date(donor.created_at).toLocaleDateString();
+                
+                row.innerHTML = `
+                    <td>${donor.id}</td>
+                    <td>${donor.full_name}</td>
+                    <td>${donor.age}</td>
+                    <td>${donor.gender}</td>
+                    <td><strong style="color: #dc3545;">${donor.blood_group}</strong></td>
+                    <td>${donor.city}</td>
+                    <td>${donor.contact_number}</td>
+                    <td>${donor.email}</td>
+                    <td>${registeredDate}</td>
+                    <td class="action-btns">
+                        <button class="delete-btn" onclick="deleteDonorRecord(${donor.id})">Delete</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function updateStats(donors) {
+            console.log('Updating stats for', donors.length, 'donors');
+            
+            // Total donors
+            document.getElementById('totalDonors').textContent = donors.length;
+
+            // Today's donors
+            const today = new Date().toDateString();
+            const todayCount = donors.filter(d => 
+                new Date(d.created_at).toDateString() === today
+            ).length;
+            document.getElementById('todayDonors').textContent = todayCount;
+
+            // Unique cities
+            const cities = new Set(donors.map(d => d.city));
+            document.getElementById('uniqueCities').textContent = cities.size;
+        }
+
+        async function deleteDonorRecord(donorId) {
+            if (!confirm('Are you sure you want to delete this donor record?')) {
+                return;
+            }
+
+            try {
+                console.log('Deleting donor:', donorId);
+                const result = await deleteDonor(donorId);
+
+                if (result.success) {
+                    showNotification(result.message, 'success');
+                    loadDonors(); // Reload the table
+                } else {
+                    showNotification(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                showNotification('An error occurred while deleting', 'error');
+            }
+        }
+    </script>
+
+</body>
+</html>

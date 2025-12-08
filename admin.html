@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | Blood Donation Portal</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container">
+            <a href="index.html" class="navbar-brand">Blood Donation Portal</a>
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="register.html">Donor Registration</a></li>
+                <li><a href="search.html">Search Donors</a></li>
+                <li><a href="admin.html" class="active-link">Admin Login</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="page-header">
+        <span class="page-decor"></span>
+        <h1>Admin Login</h1>
+        <p>Access the admin dashboard to manage donor records</p>
+    </header>
+
+    <div class="admin-card-wrap">
+        <div class="admin-card">
+            <h2>Administrator Access</h2>
+            <p class="lead">Sign in to access the admin dashboard and manage donor records</p>
+
+            <div class="sign-in-required">
+                <h3>Sign In Required</h3>
+                <p>Please sign in to access this content</p>
+                <button class="sign-in-btn" id="showLoginBtn">Sign In</button>
+            </div>
+
+            <!-- Hidden login form -->
+            <div class="login-form" id="loginForm">
+                <h3>Administrator Login</h3>
+                <form id="adminLoginForm">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+
+                    <button type="submit">Login</button>
+                </form>
+                <p style="margin-top: 15px; font-size: 13px; color: #666;">
+                    Default credentials: username: <strong>admin</strong>, password: <strong>admin123</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-footer-space"></div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Blood Donation Portal | Designed for VTU Mini Project</p>
+        </div>
+    </footer>
+
+    <!-- Supabase Config Script -->
+    <script src="supabase-config.js"></script>
+
+    <script>
+        // Check if already logged in
+        console.log('Checking if admin is already logged in...');
+        if (isAdminLoggedIn()) {
+            console.log('Admin already logged in, redirecting to dashboard...');
+            window.location.href = 'dashboard.html';
+        } else {
+            console.log('Admin not logged in, showing login form');
+        }
+
+        // Show login form when button clicked
+        document.getElementById('showLoginBtn').addEventListener('click', function() {
+            document.getElementById('loginForm').style.display = 'block';
+            this.style.display = 'none';
+        });
+
+        // Handle login form submission
+        document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            console.log('Login form submitted');
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            console.log('Username:', username);
+            
+            // Disable submit button
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Logging in...';
+
+            try {
+                console.log('Calling adminLogin()...');
+                const result = await adminLogin(username, password);
+                console.log('Login result:', result);
+
+                if (result.success) {
+                    showNotification(result.message, 'success');
+                    console.log('Login successful, redirecting to dashboard...');
+                    
+                    // Redirect after short delay
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1000);
+                } else {
+                    console.log('Login failed:', result.message);
+                    showNotification(result.message, 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Login';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showNotification('An error occurred during login', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Login';
+            }
+        });
+    </script>
+
+</body>
+</html>
